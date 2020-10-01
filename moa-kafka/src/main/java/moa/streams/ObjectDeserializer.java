@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 
 /**
- * Kafka deserialiser for Java objects. Uses Java's serialisation tools
+ * kafka deserialiser for Java objects. Uses Java's serialisation tools
  * internally.
  *
  * @author Corey Sterling (csterlin at waikato dot ac dot nz)
@@ -45,7 +45,7 @@ public class ObjectDeserializer<T>
       ObjectInputStream streamDeserialiser = new ObjectInputStream(new ByteArrayInputStream(bytes));
       return (T) streamDeserialiser.readObject();
     } catch (IOException | ClassNotFoundException | ClassCastException e) {
-      throw new RuntimeException("Failed to deserialise object from Kafka", e);
+      throw new RuntimeException("Failed to deserialise object from kafka", e);
     }
   }
 }

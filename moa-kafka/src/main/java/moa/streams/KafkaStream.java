@@ -50,7 +50,7 @@ import java.util.Map.Entry;
 import java.util.Queue;
 
 /**
- * Instance stream which consumes instances from a Kafka topic.
+ * Instance stream which consumes instances from a kafka topic.
  *
  * Assumptions:
  *   - The ordering of the instances in the topic is unimportant,
@@ -69,29 +69,29 @@ public class KafkaStream extends AbstractOptionHandler implements
   // Serialisation UID#
   private static final long serialVersionUID = 671271388371039247L;
 
-  // The longest wait time that can be specified to Kafka calls
+  // The longest wait time that can be specified to kafka calls
   public static final Duration WAIT_AS_LONG_AS_POSSIBLE = Duration.ofMillis(Long.MAX_VALUE);
 
   // -- OPTIONS -- //
 
   // The topic to consume
   public StringOption topicOption = new StringOption("topic", 't',
-    "Kafka topic to consume", "");
+    "kafka topic to consume", "");
 
   // The broker host to connect to
   public StringOption hostOption = new StringOption("host", 'h',
-    "The Kafka broker host", "");
+    "The kafka broker host", "");
 
   // The broker port to connect to
   public StringOption portOption = new StringOption("port", 'p',
-    "The Kafka broker port", "");
+    "The kafka broker port", "");
 
   // -- TRANSIENTS -- //
 
-  // The consumer which will retrieve records from the Kafka stream
+  // The consumer which will retrieve records from the kafka stream
   protected transient KafkaConsumer<Long, Instance> m_Consumer = null;
 
-  // A buffer of instances retrieved from the Kafka stream
+  // A buffer of instances retrieved from the kafka stream
   protected transient Queue<Instance> m_InstanceBuffer = null;
 
   // Whether we have reached the end of the stream
@@ -102,7 +102,7 @@ public class KafkaStream extends AbstractOptionHandler implements
 
   @Override
   public String getPurposeString() {
-    return "A stream consumed from a Kafka topic.";
+    return "A stream consumed from a kafka topic.";
   }
 
   @Override
@@ -139,7 +139,7 @@ public class KafkaStream extends AbstractOptionHandler implements
 
   @Override
   public Example<Instance> nextInstance() {
-    // Retrieve more instances from Kafka if the buffer is empty
+    // Retrieve more instances from kafka if the buffer is empty
     fillBufferIfNecessary();
 
     // If the buffer is empty, return null
@@ -181,7 +181,7 @@ public class KafkaStream extends AbstractOptionHandler implements
     }
 
     // Add the actual description
-    sb.append("Kafka instance stream consuming topic '");
+    sb.append("kafka instance stream consuming topic '");
     sb.append(topicOption.getValue());
     sb.append("' from broker at ");
     sb.append(broker());
@@ -198,7 +198,7 @@ public class KafkaStream extends AbstractOptionHandler implements
   }
 
   /**
-   * Makes sure the Kafka consumer is available and ready to
+   * Makes sure the kafka consumer is available and ready to
    * retrieve instances.
    */
   protected void establishConsumer() {
@@ -217,7 +217,7 @@ public class KafkaStream extends AbstractOptionHandler implements
   }
 
   /**
-   * Creates the configuration for the Kafka consumer.
+   * Creates the configuration for the kafka consumer.
    */
   protected Map<String, Object> createConsumerConfiguration() {
     Map<String, Object> config = new HashMap<>();
@@ -239,7 +239,7 @@ public class KafkaStream extends AbstractOptionHandler implements
   }
 
   /**
-   * Gets the Kafka broker to connect to.
+   * Gets the kafka broker to connect to.
    */
   protected String broker() {
     return hostOption.getValue() + ":" + portOption.getValue();
@@ -254,7 +254,7 @@ public class KafkaStream extends AbstractOptionHandler implements
   }
 
   /**
-   * Directs the consumer to the beginning of the Kafka stream.
+   * Directs the consumer to the beginning of the kafka stream.
    */
   protected void restartConsumer() {
     // Can't restart a non-resident consumer
@@ -290,7 +290,7 @@ public class KafkaStream extends AbstractOptionHandler implements
   }
 
   /**
-   * Retrieves more instances from Kafka and places them in the buffer.
+   * Retrieves more instances from kafka and places them in the buffer.
    */
   protected void fillBufferIfNecessary() {
     // If we've reached the end of stream, we can't fill the buffer
@@ -308,7 +308,7 @@ public class KafkaStream extends AbstractOptionHandler implements
     if (m_InstanceBuffer == null)
       m_InstanceBuffer = new LinkedList<>();
 
-    // Get some records from Kafka
+    // Get some records from kafka
     ConsumerRecords<Long, Instance> records = m_Consumer.poll(WAIT_AS_LONG_AS_POSSIBLE);
 
     // Add each instance to the buffer

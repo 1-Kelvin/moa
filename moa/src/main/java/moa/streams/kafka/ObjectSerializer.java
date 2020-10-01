@@ -18,7 +18,7 @@
  * Copyright (C) 2019 University of Waikato, Hamilton, NZ
  */
 
-package moa.streams;
+package moa.streams.kafka;
 
 import org.apache.kafka.common.serialization.Serializer;
 
