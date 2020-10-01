@@ -31,6 +31,7 @@ import moa.core.Example;
 import moa.core.InstanceExample;
 import moa.core.ObjectRepository;
 import moa.options.AbstractOptionHandler;
+import moa.streams.ArffFileStream;
 import moa.streams.InstanceStream;
 import moa.tasks.TaskMonitor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -170,7 +171,10 @@ public class PeterDataKafkaStream extends AbstractOptionHandler implements
 
     @Override
     public ImmutableCapabilities defineImmutableCapabilities() {
-        return new ImmutableCapabilities(Capability.VIEW_EXPERIMENTAL, Capability.VIEW_STANDARD);
+        if (this.getClass() == PeterDataKafkaStream.class)
+            return new ImmutableCapabilities(Capability.VIEW_STANDARD, Capability.VIEW_LITE);
+        else
+            return new ImmutableCapabilities(Capability.VIEW_STANDARD);
     }
 
     @Override
