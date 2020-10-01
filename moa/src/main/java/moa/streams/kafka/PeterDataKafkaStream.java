@@ -53,7 +53,7 @@ import java.util.Queue;
 
 /**
  * Instance stream which consumes instances from a kafka topic.
- *
+ * lol
  * Assumptions:
  *   - The ordering of the instances in the topic is unimportant,
  *     or if it is important, it is ensured by a topic with only one
