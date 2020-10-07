@@ -24,6 +24,7 @@ import com.github.javacliparser.StringOption;
 import com.yahoo.labs.samoa.instances.Instance;
 import com.yahoo.labs.samoa.instances.Instances;
 import com.yahoo.labs.samoa.instances.InstancesHeader;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import moa.capabilities.CapabilitiesHandler;
 import moa.capabilities.Capability;
 import moa.capabilities.ImmutableCapabilities;
@@ -40,6 +41,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.LongDeserializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.io.Closeable;
 import java.time.Duration;
@@ -60,8 +62,6 @@ import java.util.Queue;
  *     partition.
  *   - The stream is considered ended when a record with a null
  *     value is found.
- *   - The serialised form of the instances is using Java's own
- *     serialisation tools (i.e. {@link ObjectSerializer}).
  *
  * @author Corey Sterling (csterlin at waikato dot ac dot nz)
  */
@@ -78,20 +78,28 @@ public class PeterDataKafkaStream extends AbstractOptionHandler implements
 
     // The topic to consume
     public StringOption topicOption = new StringOption("topic", 't',
-            "kafka topic to consume", "");
+            "kafka topic to consume", "new-meterreadings");
 
     // The broker host to connect to
     public StringOption hostOption = new StringOption("host", 'h',
-            "The kafka broker host", "");
+            "The kafka broker host", "localhost");
 
     // The broker port to connect to
     public StringOption portOption = new StringOption("port", 'p',
-            "The kafka broker port", "");
+            "The kafka broker port", "9092");
+
+    // The broker port to connect to
+    public StringOption schemaOption = new StringOption("schema", 's',
+            "The kafka schema host", "localhost");
+
+    // The broker port to connect to
+    public StringOption schemaPortOption = new StringOption("schemaport", 'r',
+            "The kafka schema port", "8081");
 
     // -- TRANSIENTS -- //
 
     // The consumer which will retrieve records from the kafka stream
-    protected transient KafkaConsumer<Long, Instance> m_Consumer = null;
+    protected transient KafkaConsumer<String, Instance> m_Consumer = null;
 
     // A buffer of instances retrieved from the kafka stream
     protected transient Queue<Instance> m_InstanceBuffer = null;
@@ -227,8 +235,9 @@ public class PeterDataKafkaStream extends AbstractOptionHandler implements
     protected Map<String, Object> createConsumerConfiguration() {
         Map<String, Object> config = new HashMap<>();
 
-        config.put("key.deserializer", LongDeserializer.class);
-        config.put("value.deserializer", ObjectDeserializer.class);
+        config.put("key.deserializer", StringDeserializer.class);
+        config.put("value.deserializer", KafkaAvroDeserializer.class);
+        config.put("schema.registry.url", schema());
         config.put("bootstrap.servers", broker());
         config.put("fetch.min.bytes", 1);
         config.put("group.id", uniqueGroupIDString());
@@ -248,6 +257,13 @@ public class PeterDataKafkaStream extends AbstractOptionHandler implements
      */
     protected String broker() {
         return hostOption.getValue() + ":" + portOption.getValue();
+    }
+
+    /**
+     * Gets the kafka broker to connect to.
+     */
+    protected String schema() {
+        return "http://" +schemaOption.getValue() + ":" + schemaPortOption.getValue();
     }
 
     /**
@@ -314,11 +330,14 @@ public class PeterDataKafkaStream extends AbstractOptionHandler implements
             m_InstanceBuffer = new LinkedList<>();
 
         // Get some records from kafka
-        ConsumerRecords<Long, Instance> records = m_Consumer.poll(WAIT_AS_LONG_AS_POSSIBLE);
+        ConsumerRecords<String, Instance> records = m_Consumer.poll(WAIT_AS_LONG_AS_POSSIBLE);
 
         // Add each instance to the buffer
-        for (ConsumerRecord<Long, Instance> record : records) {
+        for (ConsumerRecord<String, Instance> record : records) {
             System.out.println(record.key());
+
+
+            //Todo parse record to instance or whatever moa needs!
 
             // Extract the instance from the record
             Instance instance = record.value();
