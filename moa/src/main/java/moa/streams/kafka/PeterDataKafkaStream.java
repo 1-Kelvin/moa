@@ -32,9 +32,7 @@ import moa.core.Example;
 import moa.core.InstanceExample;
 import moa.core.ObjectRepository;
 import moa.options.AbstractOptionHandler;
-import moa.streams.ArffFileStream;
 import moa.streams.InstanceStream;
-import moa.streams.kafka.avroConverter.AvroConverterImplementation;
 import moa.streams.kafka.avroConverter.AvroStreamConverter;
 import moa.tasks.TaskMonitor;
 import org.apache.avro.generic.GenericRecord;
@@ -43,11 +41,9 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.serialization.LongDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.io.Closeable;
-import java.io.Console;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
@@ -113,6 +109,8 @@ public class PeterDataKafkaStream extends AbstractOptionHandler implements
 
     // The header for the instances
     protected transient InstancesHeader m_Header = null;
+
+    protected transient AvroStreamConverter _avroStreamConverter = null;
 
     @Override
     public String getPurposeString() {
@@ -229,6 +227,7 @@ public class PeterDataKafkaStream extends AbstractOptionHandler implements
         // Subscribe to the given topic
         m_Consumer.subscribe(Collections.singletonList(topicOption.getValue()));
 
+
         // Make sure the consumer starts from the beginning of the topic
         restartConsumer();
     }
@@ -333,21 +332,24 @@ public class PeterDataKafkaStream extends AbstractOptionHandler implements
         if (m_InstanceBuffer == null)
             m_InstanceBuffer = new LinkedList<>();
 
+
+
         // Get some records from kafka
         ConsumerRecords<String, GenericRecord> records = m_Consumer.poll(WAIT_AS_LONG_AS_POSSIBLE);
 
         if(!records.isEmpty()){
             GenericRecord firstRecord = records.iterator().next().value();
             System.out.println(firstRecord.getSchema());
-            AvroStreamConverter converter = new AvroStreamConverter(firstRecord.getSchema());
-
+            if(_avroStreamConverter == null){
+                _avroStreamConverter = new AvroStreamConverter(firstRecord.getSchema());
+                //m_Header =  _avroStreamConverter.getStructure();
+            }
 
             // Add each instance to the buffer
             for (ConsumerRecord<String, GenericRecord> record : records) {
                 System.out.println(record.key());
 
-
-                Instance instance = converter.readInstance(record.value());
+                Instance instance = _avroStreamConverter.readInstance(record.value());
 
                 // Extract the instance from the record
 
