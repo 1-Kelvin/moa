@@ -45,13 +45,8 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.io.Closeable;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Queue;
 
 /**
  * Instance stream which consumes instances from a kafka topic.
@@ -339,10 +334,18 @@ public class PeterDataKafkaStream extends AbstractOptionHandler implements
 
         if(!records.isEmpty()){
             GenericRecord firstRecord = records.iterator().next().value();
-            System.out.println(firstRecord.getSchema());
             if(_avroStreamConverter == null){
                 _avroStreamConverter = new AvroStreamConverter(firstRecord.getSchema());
-                m_Header = new InstancesHeader(_avroStreamConverter.createInstances());
+                _avroStreamConverter.AddMetaInfoDate("readingTime", "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+                _avroStreamConverter.AddMetaInfoEnumList("forMeter.serialNumber.id", new ArrayList<String>() {
+                    {
+                        add("eba5b585-8bd3-498a-a3bc-6f8cd4b9f975");
+                        add("4eb24280-15f9-4a3e-92a5-5cf3a355802d");
+                        add("7300f552-9a41-4daf-96b5-4dc6851b7828");
+                        add("1b4399e4-3484-4930-8f36-bdc17d2b26f7");
+                    }
+                });
+                m_Header = _avroStreamConverter.getInstancesHeader();
                 //m_Header.setClassIndex(m_Header.numAttributes() - 1);
             }
 
@@ -351,9 +354,7 @@ public class PeterDataKafkaStream extends AbstractOptionHandler implements
                 System.out.println(record.key());
 
                 Instance instance = _avroStreamConverter.readInstance(record.value());
-                instance.setDataset(m_Header);
                 // Extract the instance from the record
-
 
                 // If it's null, this is the sentinel that the end of stream has been reached
                 if (instance == null) {

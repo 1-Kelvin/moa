@@ -4,50 +4,61 @@ import com.yahoo.labs.samoa.instances.*;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class AvroStreamConverter implements IConverter {
+public class AvroStreamConverter {
 
-    private HashMap<String, List<String>> enumInfos = new HashMap<String, List<String>>() {
-        {
-            put("forMeter.serialNumber.id", new ArrayList<String>() {
-                {
-                    add("eba5b585-8bd3-498a-a3bc-6f8cd4b9f975");
-                    add("4eb24280-15f9-4a3e-92a5-5cf3a355802d");
-                    add("7300f552-9a41-4daf-96b5-4dc6851b7828");
-                    add("1b4399e4-3484-4930-8f36-bdc17d2b26f7");
-                }
-            });
-        }
-    };
+    private final HashMap<String, List<String>> MetaInfoEnumList = new HashMap<String, List<String>>();
 
-    private HashMap<String, String> _datumAndFormat = new HashMap<String, String>(){
-
-    };
+    private final HashMap<String, String> MetaInfoDateList = new HashMap<String, String>();
 
     private Schema _schema;
     private InstanceInformation _instanceInformation;
+    private Instances _instances;
     private List<Attribute> _attributes;
+    private InstancesHeader _instancesHeader;
 
     public AvroStreamConverter(Schema schema) {
         _schema = schema;
+        extractStructure();
     }
 
-    public Instances createInstances(){
-        getStructure();
-        return new Instances("avro stream", _attributes, 0);
+    public InstanceInformation getInstanceInformation(){
+        return _instanceInformation;
     }
 
-    @Override
-    public InstanceInformation getStructure() {
-        if(_instanceInformation != null){
-            return _instanceInformation;
-        }
+    public List<Attribute> getAttributes(){
+        return _attributes;
+    }
+
+    public Instances getInstances(){
+        return _instances;
+    }
+
+    public InstancesHeader getInstancesHeader(){
+        return _instancesHeader;
+    }
+
+    public void AddMetaInfoEnumList(String schemaIdentifier, List<String> listOfPossibleValues){
+        MetaInfoEnumList.put(schemaIdentifier, listOfPossibleValues);
+        extractStructure();
+    }
+
+    public void AddMetaInfoDate(String schemaIdentifier, String dateTimeFormat){
+        MetaInfoDateList.put(schemaIdentifier, dateTimeFormat);
+        extractStructure();
+    }
+
+    private void extractStructure(){
         List<Attribute> attributes = new ArrayList<>();
         updateAttributeListFromSchema(attributes, _schema, "");
         _attributes = attributes;
         _instanceInformation = new InstanceInformation("avro stream", attributes);
-        return _instanceInformation;
+        _instances = new Instances("avro stream", _attributes, 0);
+        _instancesHeader = new InstancesHeader(_instances);
     }
 
     private void updateAttributeListFromSchema(List<Attribute> attributes, Schema schema, String name) {
@@ -59,13 +70,10 @@ public class AvroStreamConverter implements IConverter {
                 }
                 break;
             case STRING:
-                if (enumInfos.containsKey(name)) {
-                    attributes.add(new Attribute(name, enumInfos.get(name)));
-                } else {
-                    String[] splitString = name.split("\\.");
-                    String lastName = splitString.length <= 0 ? name : splitString[splitString.length - 1];
-                    if (lastName.toLowerCase().contains("time"))
-                        attributes.add(new Attribute(name));
+                if (MetaInfoEnumList.containsKey(name)) {
+                    attributes.add(new Attribute(name, MetaInfoEnumList.get(name)));
+                } else if(MetaInfoDateList.containsKey(name)) {
+                    attributes.add(new Attribute(name));
                 }
                 break;
             case INT:
@@ -82,14 +90,12 @@ public class AvroStreamConverter implements IConverter {
             case FIXED:
             case NULL:
             case BYTES:
+                System.out.println("Cant handle type: " + schema.getType() + " of Avro schema");
                 break;
         }
     }
 
-
-    @Override
     public Instance readInstance(GenericRecord record) {
-        getStructure();
         Instance instance = new DenseInstance(_instanceInformation.numAttributes());
         int attributeCount = 0;
         for (Attribute atr : _attributes) {
@@ -103,32 +109,41 @@ public class AvroStreamConverter implements IConverter {
             Schema schema = deeperRecord.getSchema();
             switch (schema.getField(nameSplit[nameSplit.length - 1]).schema().getType()) {
                 case STRING:
-                    if (nameSplit[nameSplit.length - 1].toLowerCase().contains("time")) {
-                        setValue(instance, attributeCount, 0, true);
-                    } else {
+                    if(MetaInfoDateList.containsKey(atr.name())){
+                        try{
+                            String dateString = deeperRecord.get(nameSplit[nameSplit.length - 1]).toString();
+                            DateFormat df = new SimpleDateFormat(MetaInfoDateList.get(atr.name()));
+                            Date date = df.parse(dateString);
+                            setValue(instance, attributeCount, date.getTime(), true);
+                        }catch (ParseException ex){
+                            setValue(instance, attributeCount, -1, true);
+                        }
+                    } else if (MetaInfoEnumList.containsKey(atr.name())) {
                         String value = deeperRecord.get(nameSplit[nameSplit.length - 1]).toString();
                         setValue(instance, attributeCount, _instanceInformation.attribute(attributeCount).indexOfValue(value), false);
-                        System.out.println(value);
                     }
                     break;
                 case INT:
+                    int iValue = (int) deeperRecord.get(nameSplit[nameSplit.length - 1]);
+                    setValue(instance, attributeCount, iValue, true);
                     break;
                 case LONG:
-                    break;
                 case FLOAT:
-                    break;
                 case DOUBLE:
                     double dValue = (double) deeperRecord.get(nameSplit[nameSplit.length - 1]);
                     setValue(instance, attributeCount, dValue, true);
-                    System.out.println(dValue);
                     break;
                 case BOOLEAN:
+                    if((boolean)deeperRecord.get(nameSplit[nameSplit.length - 1])){
+                        setValue(instance, attributeCount, 1, true);
+                    }else{
+                        setValue(instance, attributeCount, 0, true);
+                    }
                     break;
             }
             attributeCount++;
         }
-
-        int currentAttributeNumber = 0;
+        instance.setDataset(_instancesHeader);
         return instance;
     }
 
