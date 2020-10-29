@@ -42,16 +42,27 @@ public class AvroStreamConverter {
         return _instancesHeader;
     }
 
+    /**
+     * Define which field of the schema is used as enum value (example for sensor ids)
+     * @param schemaIdentifier identifier; example forMeter.serialNumber.id
+     * @param listOfPossibleValues list of all sensor ids
+     */
     public void AddMetaInfoEnumList(String schemaIdentifier, List<String> listOfPossibleValues){
         MetaInfoEnumList.put(schemaIdentifier, listOfPossibleValues);
         extractStructure();
     }
 
+    /**
+     * Define which field of the schema is used as date
+     * @param schemaIdentifier identifier; example instance.dateTime
+     * @param dateTimeFormat date format; example yyyy-MM-dd'T'HH:mm:ss.SSSXXX
+     */
     public void AddMetaInfoDate(String schemaIdentifier, String dateTimeFormat){
         MetaInfoDateList.put(schemaIdentifier, dateTimeFormat);
         extractStructure();
     }
 
+    //flat map schema and create instance relevant data
     private void extractStructure(){
         List<Attribute> attributes = new ArrayList<>();
         updateAttributeListFromSchema(attributes, _schema, "");
@@ -61,6 +72,7 @@ public class AvroStreamConverter {
         _instancesHeader = new InstancesHeader(_instances);
     }
 
+    //flat map schema and create attributes
     private void updateAttributeListFromSchema(List<Attribute> attributes, Schema schema, String name) {
         switch (schema.getType()) {
             case RECORD:
@@ -95,6 +107,7 @@ public class AvroStreamConverter {
         }
     }
 
+    //read single generic record and parse to instance based on the extracted attributes
     public Instance readInstance(GenericRecord record) {
         Instance instance = new DenseInstance(_instanceInformation.numAttributes());
         int attributeCount = 0;
@@ -147,6 +160,7 @@ public class AvroStreamConverter {
         return instance;
     }
 
+    // set value of a instance based on their type -> copied from MOA
     protected void setValue(Instance instance, int numAttribute, double value, boolean isNumber) {
         double valueAttribute;
 
