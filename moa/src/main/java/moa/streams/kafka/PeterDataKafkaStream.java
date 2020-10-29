@@ -342,7 +342,8 @@ public class PeterDataKafkaStream extends AbstractOptionHandler implements
             System.out.println(firstRecord.getSchema());
             if(_avroStreamConverter == null){
                 _avroStreamConverter = new AvroStreamConverter(firstRecord.getSchema());
-                //m_Header =  _avroStreamConverter.getStructure();
+                m_Header = new InstancesHeader(_avroStreamConverter.createInstances());
+                //m_Header.setClassIndex(m_Header.numAttributes() - 1);
             }
 
             // Add each instance to the buffer
@@ -350,7 +351,7 @@ public class PeterDataKafkaStream extends AbstractOptionHandler implements
                 System.out.println(record.key());
 
                 Instance instance = _avroStreamConverter.readInstance(record.value());
-
+                instance.setDataset(m_Header);
                 // Extract the instance from the record
 
 

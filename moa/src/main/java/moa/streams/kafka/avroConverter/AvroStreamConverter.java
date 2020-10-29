@@ -1,21 +1,14 @@
 package moa.streams.kafka.avroConverter;
 
-import avro.shaded.com.google.common.collect.Lists;
-import com.yahoo.labs.samoa.instances.Attribute;
-import com.yahoo.labs.samoa.instances.DenseInstance;
-import com.yahoo.labs.samoa.instances.Instance;
-import com.yahoo.labs.samoa.instances.InstanceInformation;
-import org.apache.avro.AvroRuntimeException;
-import org.apache.avro.LogicalType;
+import com.yahoo.labs.samoa.instances.*;
 import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericRecord;
 
 import java.util.*;
 
 public class AvroStreamConverter implements IConverter {
 
-    private HashMap<String, List<String>> metaInfos = new HashMap<String, List<String>>() {
+    private HashMap<String, List<String>> enumInfos = new HashMap<String, List<String>>() {
         {
             put("forMeter.serialNumber.id", new ArrayList<String>() {
                 {
@@ -28,12 +21,21 @@ public class AvroStreamConverter implements IConverter {
         }
     };
 
+    private HashMap<String, String> _datumAndFormat = new HashMap<String, String>(){
+
+    };
+
     private Schema _schema;
     private InstanceInformation _instanceInformation;
     private List<Attribute> _attributes;
 
     public AvroStreamConverter(Schema schema) {
         _schema = schema;
+    }
+
+    public Instances createInstances(){
+        getStructure();
+        return new Instances("avro stream", _attributes, 0);
     }
 
     @Override
@@ -57,8 +59,8 @@ public class AvroStreamConverter implements IConverter {
                 }
                 break;
             case STRING:
-                if (metaInfos.containsKey(name)) {
-                    attributes.add(new Attribute(name, metaInfos.get(name)));
+                if (enumInfos.containsKey(name)) {
+                    attributes.add(new Attribute(name, enumInfos.get(name)));
                 } else {
                     String[] splitString = name.split("\\.");
                     String lastName = splitString.length <= 0 ? name : splitString[splitString.length - 1];
